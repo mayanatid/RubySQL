@@ -1,5 +1,7 @@
 require 'csv'
 class MySqliteRequest
+    extend Forwardable
+
     attr_accessor :table, :query, 
     :from_bool, :from_table, 
     :select_bool, :select_columns, 
@@ -11,6 +13,8 @@ class MySqliteRequest
     :update_bool, :update_table,
     :set_bool, :set_data, 
     :delete_bool, :delete_token
+
+
 
     def initialize()
         @table_list ={}
@@ -27,7 +31,7 @@ class MySqliteRequest
         @query.each do |r|
             p r
         end
-    end
+    end    
 
     def from(table_name)
         @from_bool = true
@@ -35,13 +39,16 @@ class MySqliteRequest
         return self
     end
 
+    def self.from(table_name)
+        inst = MySqliteRequest.new
+        inst.from(table_name)
+        return inst
+    end
+
     def from_ex
-        if @table_list.include? @from_table
-            @table = table_list[@from_table]
-        else
-            @table_list[@from_table] = CSV.parse(File.read(@from_table), headers: true).map(&:to_h)
-            @table = @table_list[@from_table]
-        end
+        @table =  CSV.parse(File.read(@from_table), headers: true).map(&:to_h)
+        @query = []
+        return self
     end
 
     def select(*columns)
@@ -50,9 +57,14 @@ class MySqliteRequest
         return self
     end
 
+    def self.select(*columns)
+        inst = MySqliteRequest.new
+        inst.select(*columns)
+        return inst
+    end
+
     def select_ex
         columns =  @select_columns.kind_of?(Array)?  @select_columns : [ @select_columns]
-        # p columns
         @table.each do |r|
             q_row = {}
             if columns[0] == "*"
@@ -74,6 +86,12 @@ class MySqliteRequest
         return self
     end
 
+    def self.where(columns, criteria)
+        inst = MySqliteRequest.new()
+        inst.where(columns, criteria)
+        return inst
+    end
+
     def where_select_ex
         columns = @where_columns.kind_of?(Array)? @where_columns : [@where_columns]
         criteria = @where_criteria.kind_of?(Array)? @where_criteria : [@where_criteria]
@@ -86,6 +104,7 @@ class MySqliteRequest
         cc.each do |c|
             @query = @query.select {|row| row[c[0]] == c[1]}
         end
+        return self
     end
 
     def join(column_db_a, filename_db_b, column_db_b)
@@ -94,6 +113,12 @@ class MySqliteRequest
         @join_filename_db_b = filename_db_b
         @join_column_db_b   = column_db_b 
         return self
+    end
+
+    def self.join(column_db_a, filename_db_b, column_db_b)
+        inst = MySqliteRequest.new
+        inst.join(column_db_a, filename_db_b, column_db_b)
+        return inst
     end
 
     def join_ex
@@ -122,6 +147,8 @@ class MySqliteRequest
                 end
             end
         end
+
+        return self
     end
 
     def order(order, column)
@@ -131,6 +158,12 @@ class MySqliteRequest
         return self
     end 
 
+    def self.order(order, column)
+        inst = MySqliteRequest.new
+        inst.order(order, column)
+        return inst
+    end
+
     def order_ex
         # Sort- correct for if have nil in column
         if @order_order == :asc 
@@ -138,6 +171,7 @@ class MySqliteRequest
         else
             @query.sort_by! {|row| row[@order_column]? row[@order_column]: "NA" }.reverse!
         end
+        return self
     end
 
     def insert(table_name)
@@ -146,8 +180,15 @@ class MySqliteRequest
         return self
     end
 
+    def self.insert(table_name)
+        inst = MySqliteRequest.new
+        inst.insert(table_name)
+        return inst
+    end
+
     def insert_ex
         @table_list[@insert_table] = CSV.parse(File.read(@insert_table), headers: true).map(&:to_h)
+        return self
     end
 
     def values(data)
@@ -156,13 +197,33 @@ class MySqliteRequest
         return self
     end
 
+    def self.values(data)
+        inst = MySqliteRequest.new
+        inst.values(data)
+        return inst
+    end
+
+
     def values_ex
         if  @insert_bool
-            @table_list[@insert_table] << @values_data
+            # format row to insert
+            headers = CSV.parse(File.read(@insert_table), headers: false).first
+            insert_row = []
+            headers.each do |col|
+                if @values_data.keys.include?(col)
+                    insert_row.append(@values_data[col])
+                else
+                    insert_row.append(nil)
+                end
+            end
+            CSV.open(@insert_table, "a") do |csv|
+                csv << insert_row
+            end
         else
             p "VALUES command must include an INSERT INTO table"
             return -1
         end
+        return self
     end
 
     def update(table_name)
@@ -171,17 +232,22 @@ class MySqliteRequest
         return self
     end
 
-    def update_ex
-        if !@table_list.include? @update_table
-            p "'#{update_table}' does not exist, please use a valid table!"
-            return -1
-        end
+    def self.update(table_name)
+        inst = MySqliteRequest.new
+        inst.update(table_name)
+        return inst
     end
 
     def set(data)
         @set_bool = true
         @set_data = data
         return self
+    end
+
+    def self.set(data)
+        inst = MySqliteRequest.new
+        inst.set(data)
+        return inst
     end
 
     def set_update_row(row)
@@ -191,15 +257,23 @@ class MySqliteRequest
     end
 
     def set_ex
-        @table_list[@update_table].each do |row|
-            if @where_bool
-                if row[@where_columns] = @where_criteria # assumes only one WHERE criteria
-                    self.set_update_row(row)
+        data = CSV.parse(File.read(@update_table), headers: false)
+        cols = data.first
+        crit_idx = cols.find_index(@where_columns)
+        data.each do |row|
+            if row[crit_idx] == @where_criteria
+                @set_data.each do |key,val|
+                    row[cols.find_index(key)] = val
                 end
-            else
-                self.set_update_row(row)
+            end 
+        end
+    
+        CSV.open(@update_table, "wb") do |csv|
+            data.each do |row|
+                csv << row
             end
         end
+       
     end
 
 
@@ -208,12 +282,25 @@ class MySqliteRequest
         return self
     end
 
+    def self.delete
+        inst = MySqliteRequest.new
+        inst.delete
+        return inst
+    end
+
     def delete_ex
-        @table_list[@from_table].select!{|row| row[@where_columns] != @where_criteria}
+        table = CSV.parse(File.read(@from_table), headers: true)
+        n_table = table.select{|row| row[@where_columns]!=@where_criteria}
+        CSV.open(@from_table, "wb") do |csv|
+            csv << table.first.headers
+            n_table.each do |row|
+                csv << row
+            end
+        end
+
     end
 
     def run
-
         # Look for SELECT statements and match with FROM and WHERE
         if @select_bool
             if !@from_bool
@@ -232,7 +319,7 @@ class MySqliteRequest
                 p "a UPDATE statement should be associated with a SET"
                 return -1
             else
-                self.update_ex
+                self.set_ex
             end
         elsif @insert_bool
             if !@values_bool
@@ -254,5 +341,5 @@ class MySqliteRequest
         end
     end
 
-end
 
+end
