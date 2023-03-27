@@ -29,9 +29,6 @@ class MySqliteRequest
 
     def print_query
         return @query
-        # @query.each do |r|
-        #     p r
-        # end
     end    
 
     def from(table_name)
@@ -318,6 +315,9 @@ class MySqliteRequest
                 self.select_ex
                 if @where_bool
                     self.where_select_ex
+                end
+                if @order_bool
+                    self.order_ex
                 end
                 self.print_query
             end 
