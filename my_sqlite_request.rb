@@ -28,9 +28,10 @@ class MySqliteRequest
     end
 
     def print_query
-        @query.each do |r|
-            p r
-        end
+        return @query
+        # @query.each do |r|
+        #     p r
+        # end
     end    
 
     def from(table_name)
