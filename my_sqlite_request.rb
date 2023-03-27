@@ -191,13 +191,13 @@ class MySqliteRequest
         return self
     end
 
-    def values(data)
+    def values(*data)
         @values_bool =true
-        @values_data = data
+        @values_data = data.kind_of?(Array)?  data[0] : data
         return self
     end
 
-    def self.values(data)
+    def self.values(*data)
         inst = MySqliteRequest.new
         inst.values(data)
         return inst
@@ -206,8 +206,14 @@ class MySqliteRequest
 
     def values_ex
         if  @insert_bool
-            # format row to insert
-            headers = CSV.parse(File.read(@insert_table), headers: false).first
+            if !File.exists?(@insert_table)
+                headers = @values_data.keys
+                CSV.open(@insert_table, "w") do |csv|
+                    csv << headers
+                end
+            else
+                headers = CSV.parse(File.read(@insert_table), headers: false).first
+            end
             insert_row = []
             headers.each do |col|
                 if @values_data.keys.include?(col)
