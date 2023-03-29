@@ -3,13 +3,15 @@ require "./my_sqlite_request.rb"
 
 class MySqlitCLI
 
-    attr_accessor :valid_cmnds, :cmnd_hash, :cur_token, :cmnd_split, :query, :table_holder
+    attr_accessor :valid_cmnds, :cmnd_hash, :cur_token, :cmnd_split, :query, :table_holder, :token_arr, :cli_alive
 
     def initialize
         @valid_cmnds = ["select", "from", "where", "order",  "update", "set", "insert", "values", "delete"]
         @cmnd_hash ={}
+        @token_arr = []
         @cur_token = ""
         @cmnd_split = []
+        @cli_alive = true
         @table_holder = ARGV[0]
         @valid_cmnds.each do |cmnd|
             @cmnd_hash[cmnd] =[]
@@ -21,23 +23,32 @@ class MySqlitCLI
             @cmnd_hash[cmnd] =[]
         end
     end
+    
+    # Read input; split tokens; loop through tokens and execute
 
     def read_input
         if ARGV.length > 0
             ARGV.clear
         end
         print "my_sqlite_cli> "
-        @cur_token = gets.chomp
-        @cur_token.delete!('();=\'')
+        @token_arr = gets.chomp.split(";")
+    end
+
+
+    def clean_input
+        if @cur_token.casecmp?("quit")
+            @cli_alive = false
+        end
+        @cur_token.delete!('()=\'')
         @cur_token.gsub! ',', ' '
         @cur_token.slice! "INTO"
         @cmnd_split = @cur_token.split(' ')
+        return true
     end
 
     def parse_input
         # account for Delete
-        p @cmnd_split
-        if @cmnd_split[0].casecmp("delete")
+        if @cmnd_split[0].casecmp?("delete")
             @cmnd_hash['delete'].append("Delete")
         end
         arg_i = 0;
@@ -67,7 +78,7 @@ class MySqlitCLI
 
     def build_select
         req = MySqliteRequest.new
-        req.select(cmnd_hash['select'][0])
+        req.select(*cmnd_hash['select'])
         req.from(cmnd_hash['from'][0])
         if cmnd_hash['where'].length > 0
             req.where(cmnd_hash['where'][0], cmnd_hash['where'][1])
@@ -86,7 +97,7 @@ class MySqlitCLI
     # end
 
     def build_insert
-        if cmnd_hash['insert'][0].casecmp("into")
+        if cmnd_hash['insert'][0].casecmp?("into")
             cmnd_hash['insert'].shift
         end
         req = MySqliteRequest.new
@@ -99,7 +110,7 @@ class MySqlitCLI
     def build_update
         req = MySqliteRequest.new
         req.update(cmnd_hash['update'][0])
-        p Hash[*cmnd_hash['set'].flatten(1)]
+        # p Hash[*cmnd_hash['set'].flatten(1)]
         req.set(Hash[*cmnd_hash['set'].flatten(1)])
         req.where(cmnd_hash['where'][0], cmnd_hash['where'][1])
         req.run
@@ -114,29 +125,37 @@ class MySqlitCLI
     end
 
     def interpret_input
+        # p cmnd_hash
         if cmnd_hash['select'].length > 0
-            p 'select'
+            # p 'select'
             self.build_select
         elsif cmnd_hash['insert'].length > 0
-            p 'insert'
+            # p 'insert'
             self.build_insert
         elsif cmnd_hash['update'].length > 0
-            p 'update'
+            # p 'update'
             self.build_update
         elsif cmnd_hash['delete'].length > 0
-            p cmnd_hash
-            p 'delete'
+            # p cmnd_hash
+            # p 'delete'
             self.build_delete
         end
     end
 
-    def listen
-        self.read_input
-        while @cur_token != 'quit'
-            self.read_input
+    def execute_commands
+        @token_arr.each do |cmnd|
+            @cur_token = cmnd
+            self.clean_input
             self.parse_input
             self.interpret_input
             self.reset_cmnd_hash
+        end
+    end
+
+    def listen
+        while @cli_alive
+            self.read_input
+            self.execute_commands
         end
     end
     
