@@ -29,13 +29,19 @@ class MySqliteCLI
             ARGV.clear
         end
         print "my_sqlite_cli> "
-        @token_arr = gets.chomp.split(";")
+        @token_arr = gets
+        if !@token_arr
+            @cli_alive = false
+            return
+        end
+        @token_arr = @token_arr.chomp.split(";")
     end
 
 
     def clean_input
-        if @cur_token.casecmp?("quit")
+        if !@cur_token || @cur_token.casecmp?("quit")
             @cli_alive = false
+            return 
         end
         @cur_token.delete!('()=\'')
         @cur_token.gsub! ',', ' '
@@ -70,7 +76,7 @@ class MySqliteCLI
                 out_str += "|"
             end
             out_str = out_str.slice(0..-2)
-            print(out_str+"\n")
+            print(out_str+" \n")
         end
     end
 
@@ -125,9 +131,15 @@ class MySqliteCLI
     end
 
     def execute_commands
+        if !@cli_alive
+            return
+        end
         @token_arr.each do |cmnd|
             @cur_token = cmnd
             self.clean_input
+            if !@cli_alive
+                return
+            end
             self.parse_input
             self.interpret_input
             self.reset_cmnd_hash
