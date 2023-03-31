@@ -305,7 +305,6 @@ class MySqliteRequest
     end
 
     def run
-        # Look for SELECT statements and match with FROM and WHERE
         if @select_bool
             if !@from_bool
                 p "a SELECT statement should be associated with a FROM"
