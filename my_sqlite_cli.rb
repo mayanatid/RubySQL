@@ -1,7 +1,7 @@
 require "./my_sqlite_request.rb"
 
 
-class MySqlitCLI
+class MySqliteCLI
 
     attr_accessor :valid_cmnds, :cmnd_hash, :cur_token, :cmnd_split, :query, :table_holder, :token_arr, :cli_alive
 
@@ -143,5 +143,5 @@ class MySqlitCLI
     
 end
 
-sql_cli = MySqlitCLI.new
+sql_cli = MySqliteCLI.new
 sql_cli.listen
