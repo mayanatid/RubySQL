@@ -23,8 +23,6 @@ class MySqlitCLI
             @cmnd_hash[cmnd] =[]
         end
     end
-    
-    # Read input; split tokens; loop through tokens and execute
 
     def read_input
         if ARGV.length > 0
@@ -87,15 +85,6 @@ class MySqlitCLI
         format_output(@query)
     end
 
-    # def make_insert_hash(table_name, val_arr)
-    #     keyes = CSV.parse(File.read(@insert_table), headers: true).headers
-    #     r_hash = {}
-    #     (0..val_arr.length).each do |i|
-    #         r_hash[keyes[i]] = val_arr[i]
-    #     end
-    #     return r_hash
-    # end
-
     def build_insert
         if cmnd_hash['insert'][0].casecmp?("into")
             cmnd_hash['insert'].shift
@@ -110,7 +99,6 @@ class MySqlitCLI
     def build_update
         req = MySqliteRequest.new
         req.update(cmnd_hash['update'][0])
-        # p Hash[*cmnd_hash['set'].flatten(1)]
         req.set(Hash[*cmnd_hash['set'].flatten(1)])
         req.where(cmnd_hash['where'][0], cmnd_hash['where'][1])
         req.run
@@ -125,19 +113,13 @@ class MySqlitCLI
     end
 
     def interpret_input
-        # p cmnd_hash
         if cmnd_hash['select'].length > 0
-            # p 'select'
             self.build_select
         elsif cmnd_hash['insert'].length > 0
-            # p 'insert'
             self.build_insert
         elsif cmnd_hash['update'].length > 0
-            # p 'update'
             self.build_update
         elsif cmnd_hash['delete'].length > 0
-            # p cmnd_hash
-            # p 'delete'
             self.build_delete
         end
     end
