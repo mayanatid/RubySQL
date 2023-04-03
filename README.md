@@ -6,6 +6,7 @@
 
 <img src="https://icon-library.com/images/ruby-icon-png/ruby-icon-png-18.jpg" width="150" display="inline"> 
 </p>
+
 ## Overview
 RubySQL is a command-line tool which executes basic SQL commands on .csv files. The following command patterns are available
 
