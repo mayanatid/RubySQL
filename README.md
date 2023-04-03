@@ -1,9 +1,11 @@
 # Welcome to RubySQL
 ***
-<img src="https://thumbs.dreamstime.com/b/sql-icon-trendy-modern-flat-linear-vector-white-bac-background-thin-line-internet-security-networking-collection-130953272.jpg" width="100"> 
 
-<img src="https://icon-library.com/images/ruby-icon-png/ruby-icon-png-18.jpg" width="100" display="inline"> 
+<p float="left">
+<img src="https://thumbs.dreamstime.com/b/sql-icon-trendy-modern-flat-linear-vector-white-bac-background-thin-line-internet-security-networking-collection-130953272.jpg" width="150"> 
 
+<img src="https://icon-library.com/images/ruby-icon-png/ruby-icon-png-18.jpg" width="150" display="inline"> 
+</p>
 ## Overview
 RubySQL is a command-line tool which executes basic SQL commands on .csv files. The following command patterns are available
 
